@@ -6,6 +6,7 @@ class CrosswalkEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self):
+    print("initialized environment!")
     pass
   def step(self, action):
     pass
