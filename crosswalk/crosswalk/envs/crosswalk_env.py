@@ -9,7 +9,7 @@ class CrosswalkEnv(gym.Env):
 
   def __init__(self):
     super(CrosswalkEnv, self).__init__()
-    self.action_space = spaces.Box(low=-1.0, high=1.0, shape=1, dtype=np.float32) # must be symmetric for ddpg
+    self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
     # observation: the closest 3 people, each 1.0 / distance_x, distance_y, (intensity), velocity (vx, vy)
     # TODO specify observation
     self.observation_space = spaces.Box(low=np.array([-10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0]), 
