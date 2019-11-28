@@ -26,7 +26,8 @@ class CrosswalkEnv(gym.Env):
 
   def reset(self):
     # TODO retrieve an experience from dataset and initialize the location of ego vehicle
-    obs = np.array([0.0] * 12)
+    # obs = np.array([0.0] * 12) # wrong
+    obs = self.observation_space.sample()
     return obs # initial observation
 
   def render(self, mode='human'):
