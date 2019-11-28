@@ -12,8 +12,8 @@ class CrosswalkEnv(gym.Env):
     self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
     # observation: the closest 3 people, each 1.0 / distance_x, distance_y, (intensity), velocity (vx, vy)
     # TODO specify observation
-    self.observation_space = spaces.Box(low=np.array([-10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0]), 
-                                       high=np.array([10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0]), shape=(12, 1), dtype=np.float32)
+    self.observation_space = spaces.Box(low=np.array([[-10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0]]), 
+                                       high=np.array([[10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0]]), dtype=np.float32)
     print("initialized environment!")
 
   def step(self, action):
