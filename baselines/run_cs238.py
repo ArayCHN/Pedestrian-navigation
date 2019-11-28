@@ -65,6 +65,8 @@ def train(args, extra_args):
     # if args.save_video_interval != 0:
     #     env = VecVideoRecorder(env, osp.join(logger.get_dir(), "videos"), record_video_trigger=lambda x: x % args.save_video_interval == 0, video_length=args.save_video_length)
     env = gym.make('crosswalk:crosswalk-v0')
+    env = build_env(args)
+    
     print("successfully made env!")
 
     if args.network:
