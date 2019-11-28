@@ -130,6 +130,7 @@ def get_env_type(args):
     for env in gym.envs.registry.all():
         env_type = env.entry_point.split(':')[0].split('.')[-1]
         _game_envs[env_type].add(env.id)  # This is a set so add is idempotent
+        print(env_type)
 
     if env_id in _game_envs.keys():
         env_type = env_id
