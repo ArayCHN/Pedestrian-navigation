@@ -130,7 +130,6 @@ def get_env_type(args):
     for env in gym.envs.registry.all():
         env_type = env.entry_point.split(':')[0].split('.')[-1]
         _game_envs[env_type].add(env.id)  # This is a set so add is idempotent
-        print(env_type)
 
     if env_id in _game_envs.keys():
         env_type = env_id
@@ -242,7 +241,7 @@ def main(args):
             done_any = done.any() if isinstance(done, np.ndarray) else done
             if done_any:
                 for i in np.nonzero(done)[0]:
-                    print('episode_rew={}'.format(episode_rew[i]))
+                    # print('episode_rew={}'.format(episode_rew[i]))
                     episode_rew[i] = 0
 
     env.close()
