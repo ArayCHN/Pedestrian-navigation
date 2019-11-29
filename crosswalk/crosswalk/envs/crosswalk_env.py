@@ -29,7 +29,7 @@ class CrosswalkEnv(gym.Env):
     # TODO load pickle files here!
     # suppose we have self.paths and self.videos
     # paths[i] --> path, path[i] --> (track_id, history), history[i] --> [frame_id, x, y, vx, vy]
-    # videos[i] --> video, video[i] --> frames --> frames[i] = [track_id, x, y, vx, vy]
+    # videos[i] --> video, video[i] --> frames, frames[i] = frame, frame[i] = [track_id, x, y, vx, vy]
     self.num_videos = len(self.videos)
     print("initialized environment!")
   
@@ -96,14 +96,18 @@ class CrosswalkEnv(gym.Env):
     return new_obs, rew, done, info
 
   def observe(self, frame, position):
-    # vectorize to save time!
-    x0, y0 = position
-    obs = np.empty((3, 4))
+    # TODO vectorize to save time!
+    x0, y0, vx0, vy0 = position
+    ans = []
+    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else self.MAX_DISTANCE_INVERT
     for id, x, y, vx, vy in frame:
-      # find the smallest three ids, and return their relative x, y, vx, vy
       if id != self.ego_id:
-        dist = (x - x0) ** 2 + (y - y0) ** 2
-    obs.reshape((12,))
+        ans.append([inv(x - x0), inv(y - y0), vx - vx0, vy - vy0])
+    ans.sort(ans, lambda x: 1.0/x[0]**2 + 1.0/x[1]**2)
+    while len(ans) < 3:
+      ans.append([0.0, 0.0, 0.0, 0.0])
+    ans = ans[:3]
+    obs = np.array(ans).reshape((12,))
     return obs
 
   def reset(self):
