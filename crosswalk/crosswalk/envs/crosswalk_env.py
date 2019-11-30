@@ -30,6 +30,10 @@ class CrosswalkEnv(gym.Env):
     # suppose we have self.paths and self.videos
     # paths[i] --> path, path[i] --> (track_id, history), history[i] --> [frame_id, x, y, vx, vy]
     # videos[i] --> video, video[i] --> frames, frames[i] = frame, frame[i] = [track_id, x, y, vx, vy]
+    with open('dataset_process/pickle_frames.pickle', 'rb') as file:
+      self.videos = [pickle.load(file)]
+    with open('dataset_process/path.pickle', 'rb') as file:
+      self.paths = [pickle.load(file)]
     self.num_videos = len(self.videos)
     print("initialized environment!")
   
