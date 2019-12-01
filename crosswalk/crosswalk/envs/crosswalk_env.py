@@ -92,7 +92,7 @@ class CrosswalkEnv(gym.Env):
     # determine if there is a collision
     if (new_obs[0] == self.MAX_DISTANCE_INVERT and new_obs[1] == self.MAX_DISTANCE_INVERT or
         new_obs[4] == self.MAX_DISTANCE_INVERT and new_obs[5] == self.MAX_DISTANCE_INVERT or
-        new_obs[8] == self.MAX_DISTANCE_INVERT and new_obs[9] == self.MAX_DISTANCE_INVERT)
+        new_obs[8] == self.MAX_DISTANCE_INVERT and new_obs[9] == self.MAX_DISTANCE_INVERT):
         # there is a collision
         rew = self.COLLISION_REWARD
         done = True
