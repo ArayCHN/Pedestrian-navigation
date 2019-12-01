@@ -18,8 +18,8 @@ class CrosswalkEnv(gym.Env):
     self.COLLISION_REWARD = -100.0
     self.TIME_REWARD = -1.0
     self.GOAL_REWARD = 500.0
-    self.MAX_DISTANCE_INVERT = 1.0 / 10.0 # if distance < 10 pixels, we determine this as a collision
-    self.MAX_VELOCITY = 1.0 # max velocity
+    self.MAX_DISTANCE_INVERT = 1.0 / 80.0 # if distance < 80 pixels, we determine this as a collision
+    self.MAX_VELOCITY = 3.0 # max velocity
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
     self.observation_space = spaces.Box(
@@ -132,7 +132,7 @@ class CrosswalkEnv(gym.Env):
     path = self.paths[index]
     num_ids = len(path)
     track_id = np.random.choice(num_ids)
-    print(("reset!!!", track_id))
+    # print(("reset!!!", track_id))
     self.ego_id = path[track_id][0][0] # ego id
     self.ego_trajectory = path[track_id][:, 1:] # history, history[i] = [frame_id, x, y, vx, vy]
     self.current_frame_id = int(self.ego_trajectory[0][0])

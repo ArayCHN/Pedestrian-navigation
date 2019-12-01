@@ -5,8 +5,7 @@ First log into gcloud. You are now in your local directory. Now `cd ..` and `cd 
 
 We use `virtualenv` as the python env so always run `. venv/bin/activate` to activate the environment.
 
-Now go to baseline and run `python -m baselines.run_cs238 --alg=ddpg --env=cro
-sswalk:crosswalk-v0 --num_timesteps=2e7 --save_path=~/models/tmp --log_path=~/logs/tmp/`. We can customize the parameters here but the `--env` cannot be changed!
+Now go to baseline and run `python -m baselines.run_cs238 --alg=ddpg --env=crosswalk:crosswalk-v0 --num_env=8 --num_timesteps=2e7 --save_path=~/models/tmp --log_path=~/logs/tmp/`. We can customize the parameters here but the `--env` cannot be changed!
 
 **Status:** Maintenance (expect bug fixes and minor updates)
 
