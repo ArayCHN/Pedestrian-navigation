@@ -3,31 +3,136 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from gym import spaces
 import numpy as np
+import os
 
 class CrosswalkEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self):
     super(CrosswalkEnv, self).__init__()
-    self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
-    # observation: the closest 3 people, each 1.0 / distance_x, distance_y, (intensity), velocity (vx, vy)
-    # TODO specify observation
-    self.observation_space = spaces.Box(low=np.array([-10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0, -10.0, -10.0, -1.0, -1.0]), 
-                                       high=np.array([10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0, 10.0, 10.0, 1.0, 1.0]), dtype=np.float32)
+    # observation: the closest 3 people, each 1.0 / distance_x, 1.0 / distance_y, (intensity), velocity (vx, vy)
+    # initialize some parameters
+    self.MAX_TIME_STEP = 1000 # the max num of steps. if exceeds this value and agent hasn't reached end, force stop the episode.
+    self.GOAL_THRESHOLD = 20.0 # goal region, how many pixels?
+    self.COLLISION_REWARD = -1000.0
+    self.TIME_REWARD = -1.0
+    self.GOAL_REWARD = 1000.0
+    self.MAX_DISTANCE_INVERT = 10.0
+    self.MAX_VELOCITY = 10.0
+    # action space has to be symmtric, add offset to enforce positive velocity later
+    self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
+    self.observation_space = spaces.Box(
+      low=np.array([-self.MAX_DISTANCE_INVERT, -self.MAX_DISTANCE_INVERT, -self.MAX_VELOCITY, -self.MAX_VELOCITY] * 3), 
+      high=np.array([self.MAX_DISTANCE_INVERT, self.MAX_DISTANCE_INVERT, self.MAX_VELOCITY, self.MAX_VELOCITY] * 3),
+      dtype=np.float32)
+    # preload data names
+    # TODO load pickle files here!
+    # suppose we have self.paths and self.videos
+    # paths[i] --> path, path[i] --> (track_id, history), history[i] --> [frame_id, x, y, vx, vy]
+    # videos[i] --> video, video[i] --> frames, frames[i] = frame, frame[i] = [track_id, x, y, vx, vy]
+    with open('dataset_process/pickle_frames.pickle', 'rb') as file:
+      self.videos = [pickle.load(file)]
+    with open('dataset_process/path.pickle', 'rb') as file:
+      self.paths = [pickle.load(file)]
+    self.num_videos = len(self.videos)
     print("initialized environment!")
+  
+  def close_to_goal(self):
+    return ((self.x - self.goal_x)**2 + (self.y - self.goal_y)**2) ** 0.5 < self.GOAL_THRESHOLD
 
   def step(self, action):
-    # TODO use actual steps
-    info = {} # dict, debug info
-    new_obs = self.observation_space.sample()
-    rew = 0.0
-    done = True
+    # if there is no collision, give a time penalty
+    rew = self.TIME_REWARD
+    info = {} # dict, debug info, empty for now
+    done = False
+    self.time_step += 1
+    self.current_frame_id += 1
+    v = action + self.MAX_VELOCITY / 2.0 # velocity norm, should be greater than 0.0
+    # v is the distance the agent travels in one time step
+
+    # if time step exceeds limit, force terminate
+    if self.time_step > self.MAX_TIME_STEP:
+      done = True
+      new_obs = np.zeros((12,))
+      return new_obs, rew, done, info
+    
+    # update self.x, self.y, and determine if we have reached goal
+    # keep updating v to be the distance left to travel
+    x0, y0 = self.x, self.y
+    while self.ego_traj_index < self.ego_traj_length - 1:
+      x1, y1 = self.ego_trajectory[self.ego_traj_index + 1][1:3]
+      distance = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
+      if distance < v:
+        v -= distance
+        x0, y0 = x1, y1
+        self.ego_traj_index += 1
+      elif distance == v:
+        self.x, self.y = x1, y1
+        self.ego_traj_index += 1
+        break
+      else: # > v, overshoots
+        portion = (v + 0.0) / distance
+        self.x, self.y = x0 + portion * (x1 - x0), y0 + portion * (y1 - y0)
+        break
+    if self.ego_traj_index >= self.ego_traj_length - 1: # has reached goal
+      done = True
+      rew = self.GOAL_REWARD
+      new_obs = np.zeros((12,))
+      return new_obs, rew, done, info
+
+    # if we have reached the end of the video but hasn't reached the goal yet, set all obs to 0
+    # and continue running. Assume there's no other people around.
+    # TODO unsure if this is the correct way!
+    if self.current_frame_id >= len(self.frames):
+      # has reached the end of all frames, but hasn't reached goal yet. The the episode is not done,
+      # just always assume the people around agent are from the last frame
+      self.current_frame_id = len(self.frames) - 1
+
+    new_obs = self.observe(self.frames[self.current_frame_id], (self.x, self.y, vx, vy))
+    # determine if there is a collision
+    if (new_obs[0] == self.MAX_DISTANCE_INVERT and new_obs[1] == self.MAX_DISTANCE_INVERT or
+        new_obs[4] == self.MAX_DISTANCE_INVERT and new_obs[5] == self.MAX_DISTANCE_INVERT or
+        new_obs[8] == self.MAX_DISTANCE_INVERT and new_obs[9] == self.MAX_DISTANCE_INVERT):
+        # there is a collision
+        rew = self.COLLISION_REWARD
+        done = True
+    
     return new_obs, rew, done, info
+
+  def observe(self, frame, position):
+    # TODO vectorize to save time!
+    x0, y0, vx0, vy0 = position
+    ans = []
+    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else self.MAX_DISTANCE_INVERT
+    for id, x, y, vx, vy in frame:
+      if id != self.ego_id:
+        ans.append([inv(x - x0), inv(y - y0), vx - vx0, vy - vy0])
+    ans.sort(ans, lambda x: 1.0/x[0]**2 + 1.0/x[1]**2)
+    while len(ans) < 3:
+      ans.append([0.0, 0.0, 0.0, 0.0])
+    ans = ans[:3]
+    obs = np.array(ans).reshape((12,))
+    return obs
 
   def reset(self):
     # TODO retrieve an experience from dataset and initialize the location of ego vehicle
+    # randomly select an agent
     # obs = np.array([0.0] * 12) # wrong
-    obs = self.observation_space.sample()
+    # randomly select a video and a start time
+    index = np.random.choice(self.num_videos) # choose from 0 to num_videos - 1
+    path = self.paths[index]
+    num_ids = len(self.path)
+    track_id = np.random.choice(num_ids)
+    self.ego_id = path[track_id][0] # ego id
+    self.ego_trajectory = path[track_id][1] # history, history[i] = [frame_id, x, y, vx, vy]
+    self.current_frame_id = self.ego_trajectory[0][0]
+    self.frames = self.video[index]
+    self.time_step = 0
+    self.x, self.y = self.ego_trajectory[self.time_step][1], self.ego_trajectory[self.time_step][2]
+    self.goal_x, self.goal_y = self.ego_trajectory[-1][1], self.ego_trajectory[-1][2]
+    self.ego_traj_length = len(self.ego_trajectory)
+    self.ego_traj_index = 0 # starting from #0 waypoint in ego_traj
+    obs = self.observe(self.frames[self.current_frame_id], self.ego_trajectory[self.time_step][1:])
     return obs # initial observation
 
   def render(self, mode='human'):
