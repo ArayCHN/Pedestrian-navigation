@@ -13,13 +13,13 @@ class CrosswalkEnv(gym.Env):
     super(CrosswalkEnv, self).__init__()
     # observation: the closest 3 people, each 1.0 / distance_x, 1.0 / distance_y, (intensity), velocity (vx, vy)
     # initialize some parameters
-    self.MAX_TIME_STEP = 1000 # the max num of steps. if exceeds this value and agent hasn't reached end, force stop the episode.
-    self.GOAL_THRESHOLD = 20.0 # goal region, how many pixels?
-    self.COLLISION_REWARD = -1000.0
+    self.MAX_TIME_STEP = 1500 # the max num of steps. if exceeds this value and agent hasn't reached end, force stop the episode.
+    self.GOAL_THRESHOLD = 20.0 # goal region, how many pixels? This paramter is deprecated. useless.
+    self.COLLISION_REWARD = -100.0
     self.TIME_REWARD = -1.0
-    self.GOAL_REWARD = 1000.0
-    self.MAX_DISTANCE_INVERT = 1.0
-    self.MAX_VELOCITY = 1.0
+    self.GOAL_REWARD = 500.0
+    self.MAX_DISTANCE_INVERT = 1.0 / 10.0 # if distance < 10 pixels, we determine this as a collision
+    self.MAX_VELOCITY = 1.0 # max velocity
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
     self.observation_space = spaces.Box(
@@ -45,9 +45,11 @@ class CrosswalkEnv(gym.Env):
     # if there is no collision, give a time penalty
     rew = self.TIME_REWARD
     info = {"x": self.x, "y":self.y, "goal":(self.goal_x, self.goal_y)} # dict, debug info, empty for now
+    info["success"] = 0.0
     # print(info)
     done = False
     self.time_step += 1
+    info["time"] = self.time_step
     self.current_frame_id += 1
     v = action + self.MAX_VELOCITY / 2.0 # velocity norm, should be greater than 0.0
     # v is the distance the agent travels in one time step
@@ -80,6 +82,8 @@ class CrosswalkEnv(gym.Env):
       done = True
       rew = self.GOAL_REWARD
       new_obs = np.zeros((12,))
+      info["success"] = 1.0 # reached goal
+      # info["time"] = self.time_step # total time consumed to reach the goal
       # print(rew)
       return new_obs, rew, done, info
 

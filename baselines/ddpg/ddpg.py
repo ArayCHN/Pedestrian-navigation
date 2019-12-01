@@ -124,6 +124,8 @@ def learn(network, env,
     epoch_actions = []
     epoch_qs = []
     epoch_episodes = 0
+    epoch_success = []
+    epoch_time = []
     for epoch in range(nb_epochs):
         for cycle in range(nb_epoch_cycles):
             # Perform rollouts.
@@ -162,6 +164,9 @@ def learn(network, env,
                         epoch_episode_rewards.append(episode_reward[d])
                         episode_rewards_history.append(episode_reward[d])
                         epoch_episode_steps.append(episode_step[d])
+                        epoch_success.append(info[d]["success"])
+                        if info[d]["success"]:
+                            epoch_time.append(info[d]["time"]) # only calc success time length
                         episode_reward[d] = 0.
                         episode_step[d] = 0
                         epoch_episodes += 1
@@ -231,6 +236,8 @@ def learn(network, env,
         combined_stats['total/episodes'] = episodes
         combined_stats['rollout/episodes'] = epoch_episodes
         combined_stats['rollout/actions_std'] = np.std(epoch_actions)
+        combined_stats['rollout/success_rate'] = np.mean(epoch_success) # Rui: add for success rate
+        combined_stats['rollout/success_time'] = (np.sum(epoch_time) + 0.0) / np.sum(epoch_success) # Rui: add for time consumption
         # Evaluation statistics.
         if eval_env is not None:
             combined_stats['eval/return'] = eval_episode_rewards
