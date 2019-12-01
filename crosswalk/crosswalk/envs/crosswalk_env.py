@@ -4,6 +4,7 @@ from gym.utils import seeding
 from gym import spaces
 import numpy as np
 import os
+import pickle
 
 class CrosswalkEnv(gym.Env):
   metadata = {'render.modes': ['human']}
@@ -17,8 +18,8 @@ class CrosswalkEnv(gym.Env):
     self.COLLISION_REWARD = -1000.0
     self.TIME_REWARD = -1.0
     self.GOAL_REWARD = 1000.0
-    self.MAX_DISTANCE_INVERT = 10.0
-    self.MAX_VELOCITY = 10.0
+    self.MAX_DISTANCE_INVERT = 1.0
+    self.MAX_VELOCITY = 1.0
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
     self.observation_space = spaces.Box(
@@ -30,9 +31,9 @@ class CrosswalkEnv(gym.Env):
     # suppose we have self.paths and self.videos
     # paths[i] --> path, path[i] --> (track_id, history), history[i] --> [frame_id, x, y, vx, vy]
     # videos[i] --> video, video[i] --> frames, frames[i] = frame, frame[i] = [track_id, x, y, vx, vy]
-    with open('dataset_process/pickle_frames.pickle', 'rb') as file:
+    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/pickle_frames.pickle', 'rb') as file:
       self.videos = [pickle.load(file)]
-    with open('dataset_process/path.pickle', 'rb') as file:
+    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/path.pickle', 'rb') as file:
       self.paths = [pickle.load(file)]
     self.num_videos = len(self.videos)
     print("initialized environment!")
@@ -43,7 +44,8 @@ class CrosswalkEnv(gym.Env):
   def step(self, action):
     # if there is no collision, give a time penalty
     rew = self.TIME_REWARD
-    info = {} # dict, debug info, empty for now
+    info = {"x": self.x, "y":self.y, "goal":(self.goal_x, self.goal_y)} # dict, debug info, empty for now
+    # print(info)
     done = False
     self.time_step += 1
     self.current_frame_id += 1
@@ -78,6 +80,7 @@ class CrosswalkEnv(gym.Env):
       done = True
       rew = self.GOAL_REWARD
       new_obs = np.zeros((12,))
+      # print(rew)
       return new_obs, rew, done, info
 
     # if we have reached the end of the video but hasn't reached the goal yet, set all obs to 0
@@ -88,15 +91,17 @@ class CrosswalkEnv(gym.Env):
       # just always assume the people around agent are from the last frame
       self.current_frame_id = len(self.frames) - 1
 
+    vx = self.x - x0
+    vy = self.y - y0
     new_obs = self.observe(self.frames[self.current_frame_id], (self.x, self.y, vx, vy))
     # determine if there is a collision
-    if (new_obs[0] == self.MAX_DISTANCE_INVERT and new_obs[1] == self.MAX_DISTANCE_INVERT or
-        new_obs[4] == self.MAX_DISTANCE_INVERT and new_obs[5] == self.MAX_DISTANCE_INVERT or
-        new_obs[8] == self.MAX_DISTANCE_INVERT and new_obs[9] == self.MAX_DISTANCE_INVERT):
+    if (new_obs[0] >= self.MAX_DISTANCE_INVERT and new_obs[1] >= self.MAX_DISTANCE_INVERT or
+        new_obs[4] >= self.MAX_DISTANCE_INVERT and new_obs[5] >= self.MAX_DISTANCE_INVERT or
+        new_obs[8] >= self.MAX_DISTANCE_INVERT and new_obs[9] >= self.MAX_DISTANCE_INVERT):
         # there is a collision
         rew = self.COLLISION_REWARD
         done = True
-    
+    # print(rew)
     return new_obs, rew, done, info
 
   def observe(self, frame, position):
@@ -107,7 +112,7 @@ class CrosswalkEnv(gym.Env):
     for id, x, y, vx, vy in frame:
       if id != self.ego_id:
         ans.append([inv(x - x0), inv(y - y0), vx - vx0, vy - vy0])
-    ans.sort(ans, lambda x: 1.0/x[0]**2 + 1.0/x[1]**2)
+    ans.sort(key=lambda x: 1.0/x[0]**2 + 1.0/x[1]**2)
     while len(ans) < 3:
       ans.append([0.0, 0.0, 0.0, 0.0])
     ans = ans[:3]
@@ -121,12 +126,13 @@ class CrosswalkEnv(gym.Env):
     # randomly select a video and a start time
     index = np.random.choice(self.num_videos) # choose from 0 to num_videos - 1
     path = self.paths[index]
-    num_ids = len(self.path)
+    num_ids = len(path)
     track_id = np.random.choice(num_ids)
-    self.ego_id = path[track_id][0] # ego id
-    self.ego_trajectory = path[track_id][1] # history, history[i] = [frame_id, x, y, vx, vy]
-    self.current_frame_id = self.ego_trajectory[0][0]
-    self.frames = self.video[index]
+    print(("reset!!!", track_id))
+    self.ego_id = path[track_id][0][0] # ego id
+    self.ego_trajectory = path[track_id][:, 1:] # history, history[i] = [frame_id, x, y, vx, vy]
+    self.current_frame_id = int(self.ego_trajectory[0][0])
+    self.frames = self.videos[index]
     self.time_step = 0
     self.x, self.y = self.ego_trajectory[self.time_step][1], self.ego_trajectory[self.time_step][2]
     self.goal_x, self.goal_y = self.ego_trajectory[-1][1], self.ego_trajectory[-1][2]
