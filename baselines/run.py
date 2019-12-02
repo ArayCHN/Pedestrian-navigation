@@ -72,7 +72,7 @@ def train(args, extra_args):
             alg_kwargs['network'] = get_default_network(env_type)
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
-    alg_kwargs['nb_rollout_steps'] = 1e4
+    alg_kwargs['nb_rollout_steps'] = 1500
     alg_kwargs['total_timesteps'] = 1e7
     alg_kwargs['nb_epoch_cycles'] = 1
 

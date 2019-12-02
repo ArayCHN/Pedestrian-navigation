@@ -5,6 +5,8 @@
 .pytest_cache
 .DS_Store
 .idea
+*.pickle
+__pycache__
 
 # Setuptools distribution and build folders.
 /dist/

@@ -5,6 +5,7 @@ from gym import spaces
 import numpy as np
 import os
 import pickle
+import pandas as pd
 
 class CrosswalkEnv(gym.Env):
   metadata = {'render.modes': ['human']}
@@ -18,7 +19,7 @@ class CrosswalkEnv(gym.Env):
     self.COLLISION_REWARD = -500.0
     self.TIME_REWARD = -1.0
     self.GOAL_REWARD = 500.0
-    self.MAX_DISTANCE_INVERT = 1.0 / 10.0 # if distance < 80 pixels, we determine this as a collision
+    self.MAX_DISTANCE_INVERT = 1.0 / 20.0 # if distance < 80 pixels, we determine this as a collision
     self.MAX_VELOCITY = 3.0 # max velocity
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
@@ -31,10 +32,10 @@ class CrosswalkEnv(gym.Env):
     # suppose we have self.paths and self.videos
     # paths[i] --> path, path[i] --> (track_id, history), history[i] --> [frame_id, x, y, vx, vy]
     # videos[i] --> video, video[i] --> frames, frames[i] = frame, frame[i] = [track_id, x, y, vx, vy]
-    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/pickle_frames.pickle', 'rb') as file:
-      self.videos = [pickle.load(file)]
-    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/path.pickle', 'rb') as file:
-      self.paths = [pickle.load(file)]
+    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/pickle_frames_mix.pickle', 'rb') as file:
+      self.videos = pickle.load(file)
+    with open('/home/cs238/baselines/crosswalk/crosswalk/envs/dataset_process/path_mix.pickle', 'rb') as file:
+      self.paths = pickle.load(file)
     self.num_videos = len(self.videos)
     print("initialized environment!")
   
