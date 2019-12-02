@@ -15,10 +15,10 @@ class CrosswalkEnv(gym.Env):
     # initialize some parameters
     self.MAX_TIME_STEP = 1500 # the max num of steps. if exceeds this value and agent hasn't reached end, force stop the episode.
     self.GOAL_THRESHOLD = 20.0 # goal region, how many pixels? This paramter is deprecated. useless.
-    self.COLLISION_REWARD = -100.0
+    self.COLLISION_REWARD = -500.0
     self.TIME_REWARD = -1.0
     self.GOAL_REWARD = 500.0
-    self.MAX_DISTANCE_INVERT = 1.0 / 80.0 # if distance < 80 pixels, we determine this as a collision
+    self.MAX_DISTANCE_INVERT = 1.0 / 10.0 # if distance < 80 pixels, we determine this as a collision
     self.MAX_VELOCITY = 3.0 # max velocity
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
