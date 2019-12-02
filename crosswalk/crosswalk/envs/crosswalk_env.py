@@ -110,6 +110,10 @@ class CrosswalkEnv(gym.Env):
   def observe(self, frame, position):
     # TODO vectorize to save time!
     x0, y0, vx0, vy0 = position
+    if vx0 == 0:
+      vx0 = 0.01
+    if vy0 == 0:
+      vy0 = 0.01
     ans = []
     inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else x / abs(x) * self.MAX_DISTANCE_INVERT
     x_comp = vx0 / (vx0 ** 2 + vy0 ** 2)**0.5
