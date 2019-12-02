@@ -19,7 +19,7 @@ class CrosswalkEnv(gym.Env):
     self.COLLISION_REWARD = -500.0
     self.TIME_REWARD = -1.0
     self.GOAL_REWARD = 500.0
-    self.MAX_DISTANCE_INVERT = 1.0 / 20.0 # if distance < 80 pixels, we determine this as a collision
+    self.MAX_DISTANCE_INVERT = 1.0 / 7.0 # if distance < 7 * 1.414 = 10 pixels, we determine this as a collision
     self.MAX_VELOCITY = 3.0 # max velocity
     # action space has to be symmtric, add offset to enforce positive velocity later
     self.action_space = spaces.Box(low=-self.MAX_VELOCITY / 2.0, high=self.MAX_VELOCITY / 2.0, shape=(1,), dtype=np.float32) # must be symmetric for ddpg
@@ -88,8 +88,6 @@ class CrosswalkEnv(gym.Env):
       # print(rew)
       return new_obs, rew, done, info
 
-    # if we have reached the end of the video but hasn't reached the goal yet, set all obs to 0
-    # and continue running. Assume there's no other people around.
     # TODO unsure if this is the correct way!
     if self.current_frame_id >= len(self.frames):
       # has reached the end of all frames, but hasn't reached goal yet. The the episode is not done,
@@ -100,9 +98,9 @@ class CrosswalkEnv(gym.Env):
     vy = self.y - y0
     new_obs = self.observe(self.frames[self.current_frame_id], (self.x, self.y, vx, vy))
     # determine if there is a collision
-    if (new_obs[0] >= self.MAX_DISTANCE_INVERT and new_obs[1] >= self.MAX_DISTANCE_INVERT or
-        new_obs[4] >= self.MAX_DISTANCE_INVERT and new_obs[5] >= self.MAX_DISTANCE_INVERT or
-        new_obs[8] >= self.MAX_DISTANCE_INVERT and new_obs[9] >= self.MAX_DISTANCE_INVERT):
+    if (abs(new_obs[0]) >= self.MAX_DISTANCE_INVERT and abs(new_obs[1]) >= self.MAX_DISTANCE_INVERT or
+        abs(new_obs[4]) >= self.MAX_DISTANCE_INVERT and abs(new_obs[5]) >= self.MAX_DISTANCE_INVERT or
+        abs(new_obs[8]) >= self.MAX_DISTANCE_INVERT and abs(new_obs[9]) >= self.MAX_DISTANCE_INVERT):
         # there is a collision
         rew = self.COLLISION_REWARD
         done = True
@@ -113,10 +111,22 @@ class CrosswalkEnv(gym.Env):
     # TODO vectorize to save time!
     x0, y0, vx0, vy0 = position
     ans = []
-    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else self.MAX_DISTANCE_INVERT
+    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else x / abs(x) * self.MAX_DISTANCE_INVERT
+    x_comp = vx0 / (vx0 ** 2 + vy0 ** 2)**0.5
+    y_comp = vy0 / (vx0 ** 2 + vy0 ** 2)**0.5 # normalized
+    # new_ax_x = (x_comp, y_comp)
+    # new_ax_y = (y_comp, -x_comp)
     for id, x, y, vx, vy in frame:
       if id != self.ego_id:
-        ans.append([inv(x - x0), inv(y - y0), vx - vx0, vy - vy0])
+        dx = x - x0
+        dy = y - y0
+        dvx = vx - vx0
+        dvy = vy - vy0
+        dx_new = dx * x_comp + dy * y_comp # dx in ego frame
+        dy_new = dx * y_comp - dy * x_comp
+        dvx_new = dvx * x_comp + dvy * y_comp
+        dvy_new = dvx * y_comp - dvy * x_comp
+        ans.append([inv(dx_new), inv(dy_new), dvx_new, dvy_new]) # represented in ego frame
     ans.sort(key=lambda x: 1.0/x[0]**2 + 1.0/x[1]**2)
     while len(ans) < 3:
       ans.append([0.0, 0.0, 0.0, 0.0])
