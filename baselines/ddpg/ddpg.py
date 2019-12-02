@@ -23,7 +23,7 @@ def learn(network, env,
           total_timesteps=None,
           nb_epochs=None, # with default settings, perform 1M steps total
           nb_epoch_cycles=20,
-          nb_rollout_steps=100,
+          nb_rollout_steps=10000, # Rui: changed
           reward_scale=1.0,
           render=False,
           render_eval=False,
