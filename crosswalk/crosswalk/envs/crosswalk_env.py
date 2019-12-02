@@ -115,9 +115,10 @@ class CrosswalkEnv(gym.Env):
     if vy0 == 0:
       vy0 = 0.01
     ans = []
-    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else x / abs(x) * self.MAX_DISTANCE_INVERT
-    x_comp = vx0 / (vx0 ** 2 + vy0 ** 2)**0.5
-    y_comp = vy0 / (vx0 ** 2 + vy0 ** 2)**0.5 # normalized
+    sign = lambda x: 1 if x >= 0 else -1
+    inv = lambda x: 1.0 / x if abs(x) > 1.0 / self.MAX_DISTANCE_INVERT else sign(x) * self.MAX_DISTANCE_INVERT
+    x_comp = vx0 / ((vx0 ** 2 + vy0 ** 2)**0.5)
+    y_comp = vy0 / ((vx0 ** 2 + vy0 ** 2)**0.5) # normalized
     # new_ax_x = (x_comp, y_comp)
     # new_ax_y = (y_comp, -x_comp)
     for id, x, y, vx, vy in frame:
