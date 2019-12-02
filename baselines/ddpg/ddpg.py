@@ -57,6 +57,8 @@ def learn(network, env,
     else:
         rank = 0
 
+    print("!!!!!!!!!!!!!!!!!!!!!!!!", nb_epoch_cycles)
+
     nb_actions = env.action_space.shape[-1]
     assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
 
