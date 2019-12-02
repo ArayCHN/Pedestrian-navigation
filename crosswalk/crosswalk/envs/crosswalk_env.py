@@ -53,6 +53,7 @@ class CrosswalkEnv(gym.Env):
     info["time"] = self.time_step
     self.current_frame_id += 1
     v = action + self.MAX_VELOCITY / 2.0 # velocity norm, should be greater than 0.0
+    v_preserve = v
     # v is the distance the agent travels in one time step
 
     # if time step exceeds limit, force terminate
@@ -64,6 +65,7 @@ class CrosswalkEnv(gym.Env):
     # update self.x, self.y, and determine if we have reached goal
     # keep updating v to be the distance left to travel
     x0, y0 = self.x, self.y
+    x_before, y_before = x0, y0
     while self.ego_traj_index < self.ego_traj_length - 1:
       x1, y1 = self.ego_trajectory[self.ego_traj_index + 1][1:3]
       distance = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
@@ -80,6 +82,7 @@ class CrosswalkEnv(gym.Env):
         self.x, self.y = x0 + portion * (x1 - x0), y0 + portion * (y1 - y0)
         break
     if self.ego_traj_index >= self.ego_traj_length - 1: # has reached goal
+      self.x, self.y = x1, y1
       done = True
       rew = self.GOAL_REWARD
       new_obs = np.zeros((12,))
@@ -94,8 +97,8 @@ class CrosswalkEnv(gym.Env):
       # just always assume the people around agent are from the last frame
       self.current_frame_id = len(self.frames) - 1
 
-    vx = self.x - x0
-    vy = self.y - y0
+    vx = self.x - x_before
+    vy = self.y - y_before
     new_obs = self.observe(self.frames[self.current_frame_id], (self.x, self.y, vx, vy))
     # determine if there is a collision
     if (abs(new_obs[0]) >= self.MAX_DISTANCE_INVERT and abs(new_obs[1]) >= self.MAX_DISTANCE_INVERT or
