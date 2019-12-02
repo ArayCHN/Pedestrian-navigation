@@ -81,6 +81,8 @@ def train(args, extra_args):
         env=env,
         seed=seed,
         total_timesteps=total_timesteps,
+        nb_epoch_cycles=1,
+        nb_rollout_steps=10000,
         **alg_kwargs
     )
 
