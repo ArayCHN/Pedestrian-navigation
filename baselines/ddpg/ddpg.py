@@ -130,7 +130,7 @@ def learn(network, env,
     # add a list to store the success rate of each video
     epoch_success_video = []
     epoch_time_video = []
-    video_num = env.num_videos
+    video_num = env.get_num()
     for i in range(video_num):
         epoch_success_video.append([])
         epoch_time_video.append([])

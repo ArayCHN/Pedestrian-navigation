@@ -166,6 +166,9 @@ class CrosswalkEnv(gym.Env):
     obs = self.observe(self.frames[self.current_frame_id], self.ego_trajectory[self.time_step][1:])
     return obs # initial observation
 
+  def get_num(self):
+    return self.num_videos
+
   def render(self, mode='human'):
     # do not render anything
     pass
