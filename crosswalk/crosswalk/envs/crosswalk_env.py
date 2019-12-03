@@ -46,6 +46,7 @@ class CrosswalkEnv(gym.Env):
     # if there is no collision, give a time penalty
     rew = self.TIME_REWARD
     info = {"x": self.x, "y":self.y, "goal":(self.goal_x, self.goal_y)} # dict, debug info, empty for now
+    info["index"] = self.index # record the index of video to see the success_rate of each video
     info["success"] = 0.0
     # print(info)
     done = False
@@ -148,6 +149,7 @@ class CrosswalkEnv(gym.Env):
     # obs = np.array([0.0] * 12) # wrong
     # randomly select a video and a start time
     index = np.random.choice(self.num_videos) # choose from 0 to num_videos - 1
+    self.index = index # use info to debug
     path = self.paths[index]
     num_ids = len(path)
     track_id = np.random.choice(num_ids)
@@ -163,6 +165,7 @@ class CrosswalkEnv(gym.Env):
     self.ego_traj_index = 0 # starting from #0 waypoint in ego_traj
     obs = self.observe(self.frames[self.current_frame_id], self.ego_trajectory[self.time_step][1:])
     return obs # initial observation
+
 
   def render(self, mode='human'):
     # do not render anything
