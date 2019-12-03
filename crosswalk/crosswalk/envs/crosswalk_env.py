@@ -54,6 +54,7 @@ class CrosswalkEnv(gym.Env):
     info["time"] = self.time_step
     self.current_frame_id += 1
     v = action + self.MAX_VELOCITY / 2.0 # velocity norm, should be greater than 0.0
+    v = 1.5
     v_preserve = v
     # v is the distance the agent travels in one time step
 
