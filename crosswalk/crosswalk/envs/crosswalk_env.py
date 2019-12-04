@@ -45,6 +45,7 @@ class CrosswalkEnv(gym.Env):
   def step(self, action):
     # if there is no collision, give a time penalty
     rew = self.TIME_REWARD
+    # action = self.MAX_VELOCITY * (np.random.random_sample() - 0.5)
     info = {"x": self.x, "y":self.y, "goal":(self.goal_x, self.goal_y)} # dict, debug info, empty for now
     info["index"] = self.index # record the index of video to see the success_rate of each video
     info["success"] = 0.0
@@ -54,7 +55,6 @@ class CrosswalkEnv(gym.Env):
     info["time"] = self.time_step
     self.current_frame_id += 1
     v = action + self.MAX_VELOCITY / 2.0 # velocity norm, should be greater than 0.0
-    v = 1.5
     v_preserve = v
     # v is the distance the agent travels in one time step
 
